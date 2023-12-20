@@ -9,5 +9,6 @@
       "matches": ["*://www.youtube.com/playlist?list=*"],
       "js": ["index.js"]
     }
-  ]
+  ],
+  "permissions": ["*://*/*"]
 }
