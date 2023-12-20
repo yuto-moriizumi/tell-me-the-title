@@ -1,0 +1,13 @@
+{
+  "manifest_version": 2,
+  "name": "tell me the title",
+  "version": "1.0.0",
+  "description": "",
+  "author": "ヴォルガ・クルヴァール",
+  "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/playlist?list=*"],
+      "js": ["index.js"]
+    }
+  ]
+}
