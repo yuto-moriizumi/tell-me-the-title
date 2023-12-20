@@ -20,16 +20,38 @@ function main() {
     }&timestamp=${dayjs().add(-1, "year").format("YYYYMMDD")}`;
 
     const button = document.createElement("button");
-    button.textContent = "ぼたん";
+    button.textContent = "タイトルを調べる";
     button.onclick = async () => {
       console.log({ url, m: idMatch[1] });
-      try {
-        const res = await fetch(url);
-        console.log({ res });
-      } catch (error) {
-        console.log({ error });
+      button.textContent = "...";
+      const res = await fetch(url);
+      const data: Response = await res.json();
+      const snapshotUrl = data.archived_snapshots.closest.url;
+      console.log({ snapshotUrl });
+
+      const snapshot = await (await fetch(snapshotUrl)).text();
+      const parser = new DOMParser();
+      // Parse the raw HTML text into a new document
+      const snapshotDOM = parser.parseFromString(snapshot, "text/html");
+      console.log({ snapshotDOM });
+      const titleMeta = Array.from(
+        snapshotDOM.getElementsByTagName("meta"),
+      ).find((meta) => meta.name === "title");
+      if (titleMeta === undefined) {
+        console.log("titleMeta was not found");
+        return;
       }
+      button.textContent = titleMeta.content;
     };
+
     video.insertBefore(button, video.lastChild);
   }
 }
+
+type Response = {
+  archived_snapshots: {
+    closest: {
+      url: string;
+    };
+  };
+};

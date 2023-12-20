@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const path = require("path");
-// const CompressionPlugin = require("compression-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
+const ZipPlugin = require("zip-webpack-plugin");
 
 module.exports = () => {
   return {
@@ -29,6 +29,9 @@ module.exports = () => {
       new CopyPlugin({
         patterns: [{ from: "src/manifest.json", to: "manifest.json" }],
       }),
+      ...(process.env.TARGET === "dev"
+        ? []
+        : [new ZipPlugin({ filename: "tell-me-the-title" })]),
     ],
   };
 };
