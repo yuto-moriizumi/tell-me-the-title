@@ -2,5 +2,6 @@
   "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
   "env": {
     "node": true
-  }
+  },
+  "ignorePatterns": ["build/"]
 }

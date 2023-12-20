@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const path = require("path");
 // const CompressionPlugin = require("compression-webpack-plugin");
+const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = () => {
   return {
-    mode: "production",
+    mode: process.env.TARGET === "dev" ? "development" : "production",
+    watch: process.env.TARGET === "dev",
     entry: {
       index: path.join(__dirname, "src", "index.ts"),
     },
@@ -23,6 +25,10 @@ module.exports = () => {
     resolve: {
       extensions: [".ts", ".js"],
     },
-    // plugins: [new CompressionPlugin()],
+    plugins: [
+      new CopyPlugin({
+        patterns: [{ from: "src/manifest.json", to: "manifest.json" }],
+      }),
+    ],
   };
 };

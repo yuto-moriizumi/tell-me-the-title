@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "webpack"
+    "build": "TARGET=prod webpack",
+    "dev": "TARGET=dev webpack"
   },
   "author": "",
   "license": "ISC",
@@ -12,6 +13,7 @@
     "@tsconfig/recommended": "^1.0.3",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "compression-webpack-plugin": "^10.0.0",
+    "copy-webpack-plugin": "^11.0.0",
     "eslint": "^8.56.0",
     "prettier": "^3.1.1",
     "ts-loader": "^9.5.1",
