@@ -3,7 +3,6 @@ import dayjs from "dayjs";
 setTimeout(main, 1000);
 
 function main() {
-  console.log("main");
   for (const video of document.getElementsByTagName(
     "ytd-playlist-video-renderer",
   )) {
@@ -22,18 +21,15 @@ function main() {
     const button = document.createElement("button");
     button.textContent = "タイトルを調べる";
     button.onclick = async () => {
-      console.log({ url, m: idMatch[1] });
       button.textContent = "...";
-      const res = await fetch(url);
+      const res = await fetch(url, { mode: "no-cors" });
       const data: Response = await res.json();
-      const snapshotUrl = data.archived_snapshots.closest.url;
-      console.log({ snapshotUrl });
-
+      const snapshotUrl = new URL(data.archived_snapshots.closest.url);
+      snapshotUrl.protocol = "https";
       const snapshot = await (await fetch(snapshotUrl)).text();
       const parser = new DOMParser();
       // Parse the raw HTML text into a new document
       const snapshotDOM = parser.parseFromString(snapshot, "text/html");
-      console.log({ snapshotDOM });
       const titleMeta = Array.from(
         snapshotDOM.getElementsByTagName("meta"),
       ).find((meta) => meta.name === "title");
