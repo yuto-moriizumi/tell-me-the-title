@@ -6,18 +6,15 @@
   "author": "ヴォルガ・クルヴァール",
   "content_scripts": [
     {
-      "matches": ["*://www.youtube.com/playlist?list=*"],
+      "matches": [
+        "*://www.youtube.com/playlist?list=*",
+        "https://web.archive.org/web/*"
+      ],
       "js": ["index.js"]
     }
   ],
-  "background": {
-    "scripts": ["background.js"]
-  },
   "permissions": ["webRequest"],
-  "host_permissions": [
-    "https://archive.org/wayback/*",
-    "https://web.archive.org/web/*"
-  ],
+  "host_permissions": ["http://*/*", "https://*/*"],
   "browser_specific_settings": {
     "gecko": {
       "id": "kurvan1112@gmail.com-tell-me-the-title",

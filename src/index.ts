@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import { RequestMessage, ResponseMessage } from "./Message";
+// import { RequestMessage, ResponseMessage } from "./Message";
 
 setTimeout(main, 1000);
 
@@ -27,13 +27,24 @@ function main() {
       const data: Response = await res.json();
       const snapshotUrl = new URL(data.archived_snapshots.closest.url);
       snapshotUrl.protocol = "https";
+      // const title = await new Promise<string>((resolve) => {
+      //   chrome.runtime.sendMessage<RequestMessage, ResponseMessage>(
+      //     { url: snapshotUrl.toString() },
+      //     (response) => resolve(response.title),
+      //   );
+      // });
 
-      const title = await new Promise<string>((resolve) => {
-        chrome.runtime.sendMessage<RequestMessage, ResponseMessage>(
-          { url: snapshotUrl.toString() },
-          (response) => resolve(response.title),
-        );
-      });
+      const snapshot = await (
+        await fetch(snapshotUrl, { mode: "cors" })
+      ).text();
+      const parser = new DOMParser();
+      // Parse the raw HTML text into a new document
+      const snapshotDOM = parser.parseFromString(snapshot, "text/html");
+      const titleMeta = Array.from(
+        snapshotDOM.getElementsByTagName("meta"),
+      ).find((meta) => meta.name === "title");
+      const title = titleMeta?.textContent ?? "TitleGetError";
+
       button.textContent = title;
     };
 
