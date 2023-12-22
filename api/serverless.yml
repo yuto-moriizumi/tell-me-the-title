@@ -1,0 +1,22 @@
+﻿service: tell-me-the-title
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ap-northeast-1
+  httpApi:
+    cors: true
+
+functions:
+  api:
+    handler: main.handler
+    events:
+      - httpApi: "*"
+
+plugins:
+  - serverless-webpack
+
+custom:
+  webpack:
+    webpackConfig: webpack.config.ts
