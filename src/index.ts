@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { RequestMessage, ResponseMessage } from "./Message";
 
 setTimeout(main, 1000);
 
@@ -22,22 +23,18 @@ function main() {
     button.textContent = "タイトルを調べる";
     button.onclick = async () => {
       button.textContent = "...";
-      const res = await fetch(url, { mode: "no-cors" });
+      const res = await fetch(url, { mode: "cors" });
       const data: Response = await res.json();
       const snapshotUrl = new URL(data.archived_snapshots.closest.url);
       snapshotUrl.protocol = "https";
-      const snapshot = await (await fetch(snapshotUrl)).text();
-      const parser = new DOMParser();
-      // Parse the raw HTML text into a new document
-      const snapshotDOM = parser.parseFromString(snapshot, "text/html");
-      const titleMeta = Array.from(
-        snapshotDOM.getElementsByTagName("meta"),
-      ).find((meta) => meta.name === "title");
-      if (titleMeta === undefined) {
-        console.log("titleMeta was not found");
-        return;
-      }
-      button.textContent = titleMeta.content;
+
+      const title = await new Promise<string>((resolve) => {
+        chrome.runtime.sendMessage<RequestMessage, ResponseMessage>(
+          { url: snapshotUrl.toString() },
+          (response) => resolve(response.title),
+        );
+      });
+      button.textContent = title;
     };
 
     video.insertBefore(button, video.lastChild);

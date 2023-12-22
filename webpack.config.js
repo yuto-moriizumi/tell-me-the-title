@@ -8,11 +8,12 @@ module.exports = () => {
     mode: process.env.TARGET === "dev" ? "development" : "production",
     watch: process.env.TARGET === "dev",
     entry: {
-      index: path.join(__dirname, "src", "index.ts"),
+      index: "./src/index.ts",
+      background: "./src/background.ts",
     },
     output: {
       path: path.join(__dirname, "build"),
-      filename: "index.js",
+      filename: "[name].js",
     },
     module: {
       rules: [

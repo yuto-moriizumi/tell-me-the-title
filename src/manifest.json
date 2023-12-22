@@ -10,8 +10,14 @@
       "js": ["index.js"]
     }
   ],
-  "permissions": ["*://*/*", "webRequest"],
-  "host_permissions": ["<all_urls>"],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "permissions": ["webRequest"],
+  "host_permissions": [
+    "https://archive.org/wayback/*",
+    "https://web.archive.org/web/*"
+  ],
   "browser_specific_settings": {
     "gecko": {
       "id": "kurvan1112@gmail.com-tell-me-the-title",
