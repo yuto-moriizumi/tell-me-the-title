@@ -27,27 +27,14 @@ function main() {
       const data: Response = await res.json();
       const snapshotUrl = new URL(data.archived_snapshots.closest.url);
       snapshotUrl.protocol = "https";
-      // const title = await new Promise<string>((resolve) => {
-      //   chrome.runtime.sendMessage<RequestMessage, ResponseMessage>(
-      //     { url: snapshotUrl.toString() },
-      //     (response) => resolve(response.title),
-      //   );
-      // });
-
-      const snapshot = await (
-        await fetch(snapshotUrl, { mode: "cors" })
-      ).text();
-      const parser = new DOMParser();
-      // Parse the raw HTML text into a new document
-      const snapshotDOM = parser.parseFromString(snapshot, "text/html");
-      const titleMeta = Array.from(
-        snapshotDOM.getElementsByTagName("meta"),
-      ).find((meta) => meta.name === "title");
-      const title = titleMeta?.textContent ?? "TitleGetError";
-
+      const { title } = await (
+        await fetch(
+          `https://ior285nerb.execute-api.ap-northeast-1.amazonaws.com/snapshot?url=${snapshotUrl.toString()}`,
+          { mode: "cors" },
+        )
+      ).json();
       button.textContent = title;
     };
-
     video.insertBefore(button, video.lastChild);
   }
 }

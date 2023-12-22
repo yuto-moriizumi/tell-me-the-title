@@ -1,15 +1,12 @@
 {
   "manifest_version": 3,
   "name": "tell me the title",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "author": "ヴォルガ・クルヴァール",
   "content_scripts": [
     {
-      "matches": [
-        "*://www.youtube.com/playlist?list=*",
-        "https://web.archive.org/web/*"
-      ],
+      "matches": ["https://www.youtube.com/playlist?list=*"],
       "js": ["index.js"]
     }
   ],
@@ -17,7 +14,7 @@
   "host_permissions": ["http://*/*", "https://*/*"],
   "browser_specific_settings": {
     "gecko": {
-      "id": "kurvan1112@gmail.com-tell-me-the-title",
+      "id": "{fbb18c2d-2837-44c3-98a7-95909fb71201}",
       "strict_min_version": "109.0"
     }
   }

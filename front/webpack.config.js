@@ -9,7 +9,6 @@ module.exports = () => {
     watch: process.env.TARGET === "dev",
     entry: {
       index: "./src/index.ts",
-      background: "./src/background.ts",
     },
     output: {
       path: path.join(__dirname, "build"),
