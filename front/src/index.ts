@@ -1,27 +1,26 @@
 import dayjs from "dayjs";
-// import { RequestMessage, ResponseMessage } from "./Message";
 
-setTimeout(main, 1000);
+setInterval(main, 100);
 
 function main() {
   for (const video of document.getElementsByTagName(
     "ytd-playlist-video-renderer",
   )) {
-    const link = video.getElementsByTagName("a").item(0);
-    if (link === null) return;
-    // /watch?v=AOeY-nDp7hI&list=PLWJXk4kYouBSBs073FXlFcRwmd60Bubck&index=21&pp=gAQBiAQB8AUB
-    const idMatch = link.toString().match(/\/watch\?v=(.*?)&/);
-    if (idMatch === null) {
-      console.error("failed to extract id");
-      return;
-    }
-    const url = `https://archive.org/wayback/available?url=https://www.youtube.com/watch?v=${
-      idMatch[1]
-    }&timestamp=${dayjs().add(-1, "year").format("YYYYMMDD")}`;
-
+    if (video.children.length >= 4) return;
     const button = document.createElement("button");
     button.textContent = "タイトルを調べる";
     button.onclick = async () => {
+      const link = video.getElementsByTagName("a").item(0);
+      if (link === null) return;
+      // /watch?v=AOeY-nDp7hI&list=PLWJXk4kYouBSBs073FXlFcRwmd60Bubck&index=21&pp=gAQBiAQB8AUB
+      const idMatch = link.toString().match(/\/watch\?v=(.*?)&/);
+      if (idMatch === null) {
+        console.error("failed to extract id");
+        return;
+      }
+      const url = `https://archive.org/wayback/available?url=https://www.youtube.com/watch?v=${
+        idMatch[1]
+      }&timestamp=${dayjs().add(-1, "year").format("YYYYMMDD")}`;
       button.textContent = "...";
       const res = await fetch(url, { mode: "cors" });
       const data: Response = await res.json();
