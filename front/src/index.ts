@@ -24,15 +24,18 @@ function main() {
       button.textContent = "...";
       const res = await fetch(url, { mode: "cors" });
       const data: Response = await res.json();
-      const snapshotUrl = new URL(data.archived_snapshots.closest.url);
+      const snapshots = data.archived_snapshots;
+      if (!("closest" in snapshots))
+        return (button.textContent = "アーカイブなし");
+      const snapshotUrl = new URL(snapshots.closest.url);
       snapshotUrl.protocol = "https";
-      const { title } = await (
+      const { title, message } = await (
         await fetch(
           `https://ior285nerb.execute-api.ap-northeast-1.amazonaws.com/snapshot?url=${snapshotUrl.toString()}`,
           { mode: "cors" },
         )
       ).json();
-      button.textContent = title;
+      button.textContent = title ?? message;
     };
     video.insertBefore(button, video.lastChild);
   }
