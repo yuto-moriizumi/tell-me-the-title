@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "tell me the title",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "",
   "author": "ヴォルガ・クルヴァール",
   "content_scripts": [
@@ -10,7 +10,6 @@
       "js": ["index.js"]
     }
   ],
-  "permissions": ["webRequest"],
   "host_permissions": ["http://*/*", "https://*/*"],
   "browser_specific_settings": {
     "gecko": {
