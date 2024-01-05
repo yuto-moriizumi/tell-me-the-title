@@ -1,6 +1,7 @@
 import express, { json } from "express";
 import cors from "cors";
 import { JSDOM } from "jsdom";
+import axios from "axios";
 
 const app = express();
 
@@ -15,7 +16,8 @@ app.use(cors());
 app.get<object, object, object, { url: string }>(
   "/snapshot",
   async (req, res) => {
-    const snapshot = await (await fetch(req.query.url)).text();
+    const response = await axios.get(req.query.url);
+    const snapshot = response.data;
     const snapshotDOM = new JSDOM(snapshot).window.document;
     const titleMeta = Array.from(snapshotDOM.getElementsByTagName("meta")).find(
       (meta) => meta.name === "title",
