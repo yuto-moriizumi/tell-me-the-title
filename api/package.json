@@ -16,7 +16,8 @@
   },
   "scripts": {
     "dev": "sls offline",
-    "deploy": "sls deploy"
+    "deploy": "sls deploy",
+    "typecheck": "tsc --noEmit"
   },
   "author": "",
   "license": "ISC",

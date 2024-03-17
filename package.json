@@ -5,6 +5,10 @@
   "main": "index.js",
   "author": "",
   "license": "ISC",
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces",
+    "lint": "eslint --ext .ts,.js ."
+  },
   "devDependencies": {
     "eslint": "^8.56.0",
     "prettier": "^3.1.1"

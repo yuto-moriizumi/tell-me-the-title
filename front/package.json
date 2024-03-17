@@ -16,7 +16,8 @@
   },
   "scripts": {
     "build": "TARGET=prod webpack",
-    "dev": "TARGET=dev webpack"
+    "dev": "TARGET=dev webpack",
+    "typecheck": "tsc --noEmit"
   },
   "author": "",
   "license": "ISC",
