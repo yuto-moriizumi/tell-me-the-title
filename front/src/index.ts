@@ -8,7 +8,7 @@ function main() {
   )) {
     if (video.children.length >= 4) return;
     const button = document.createElement("button");
-    button.textContent = "タイトルを調べる";
+    button.textContent = "Get title";
     button.onclick = async () => {
       const link = video.getElementsByTagName("a").item(0);
       if (link === null) return;
@@ -25,8 +25,11 @@ function main() {
       const res = await fetch(url, { mode: "cors" });
       const data: Response = await res.json();
       const snapshots = data.archived_snapshots;
-      if (!("closest" in snapshots))
-        return (button.textContent = "アーカイブなし");
+      if (!("closest" in snapshots)) {
+        showResult("Archive unavailable");
+        button.textContent = "Get title";
+        return;
+      }
       const snapshotUrl = new URL(snapshots.closest.url);
       snapshotUrl.protocol = "https";
       const { title, message } = await (
@@ -35,10 +38,15 @@ function main() {
           { mode: "cors" },
         )
       ).json();
-      button.textContent = title ?? message;
+      showResult(title ?? message);
+      button.textContent = "Get title";
     };
     video.insertBefore(button, video.lastChild);
   }
+}
+
+function showResult(text: string) {
+  alert(text);
 }
 
 type Response = {

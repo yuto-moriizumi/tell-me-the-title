@@ -1,16 +1,19 @@
 {
   "manifest_version": 3,
   "name": "tell me the title",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "",
-  "author": "ヴォルガ・クルヴァール",
+  "author": "VolgaKurvar",
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/playlist?list=*"],
       "js": ["index.js"]
     }
   ],
-  "host_permissions": ["http://*/*", "https://*/*"],
+  "host_permissions": [
+    "http://www.youtube.com/playlist?list=*",
+    "https://www.youtube.com/playlist?list=*"
+  ],
   "browser_specific_settings": {
     "gecko": {
       "id": "{fbb18c2d-2837-44c3-98a7-95909fb71201}",
