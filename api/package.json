@@ -12,7 +12,7 @@
     "serverless-webpack": "^5.14.1",
     "terser-webpack-plugin": "^5.3.9",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.2"
+    "typescript": "^5.5.3"
   },
   "scripts": {
     "dev": "sls offline",
