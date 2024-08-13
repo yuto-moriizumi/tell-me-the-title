@@ -1,7 +1,0 @@
-{
-  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
-  "ignorePatterns": ["node_modules", "front/build"],
-  "env": {
-    "node": true
-  }
-}
