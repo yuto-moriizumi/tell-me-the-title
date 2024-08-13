@@ -10,7 +10,7 @@
     "lint": "eslint --ext .ts,.js ."
   },
   "devDependencies": {
-    "eslint": "^8.57.0",
+    "eslint": "^9.9.0",
     "prettier": "^3.3.3"
   },
   "workspaces": [
