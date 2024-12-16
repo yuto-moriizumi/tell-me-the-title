@@ -10,7 +10,7 @@
     "@types/jsdom": "^21.1.7",
     "serverless-offline": "^14.4.0",
     "serverless-webpack": "^5.15.0",
-    "terser-webpack-plugin": "^5.3.9",
+    "terser-webpack-plugin": "^5.3.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
   },
