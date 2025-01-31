@@ -5,7 +5,7 @@
   "main": "index.js",
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.8",
-    "@types/chrome": "^0.0.299",
+    "@types/chrome": "^0.0.300",
     "@typescript-eslint/eslint-plugin": "^8.19.1",
     "copy-webpack-plugin": "^12.0.2",
     "ts-loader": "^9.5.2",
