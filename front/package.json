@@ -6,7 +6,7 @@
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.11",
     "@types/chrome": "^0.1.27",
-    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "@typescript-eslint/eslint-plugin": "^8.46.3",
     "copy-webpack-plugin": "^13.0.1",
     "ts-loader": "^9.5.4",
     "typescript": "^5.9.3",
