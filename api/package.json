@@ -24,7 +24,7 @@
   "dependencies": {
     "@vendia/serverless-express": "^4.12.6",
     "axios": "^1.13.2",
-    "cors": "^2.8.5",
+    "cors": "^2.8.6",
     "express": "^5.2.1",
     "jsdom": "^27.4.0"
   }
