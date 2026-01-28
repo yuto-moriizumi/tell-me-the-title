@@ -23,7 +23,7 @@
   "license": "ISC",
   "dependencies": {
     "@vendia/serverless-express": "^4.12.6",
-    "axios": "^1.13.3",
+    "axios": "^1.13.4",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "jsdom": "^27.4.0"
