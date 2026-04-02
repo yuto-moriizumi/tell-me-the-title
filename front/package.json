@@ -8,7 +8,7 @@
     "@types/chrome": "^0.1.38",
     "@typescript-eslint/eslint-plugin": "^8.57.1",
     "copy-webpack-plugin": "^14.0.0",
-    "ts-loader": "^9.5.4",
+    "ts-loader": "^9.5.7",
     "typescript": "^6.0.2",
     "webpack": "^5.105.4",
     "webpack-cli": "^7.0.2",
