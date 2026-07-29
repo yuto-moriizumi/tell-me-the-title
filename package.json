@@ -10,7 +10,7 @@
     "lint": "eslint"
   },
   "devDependencies": {
-    "eslint": "^9.39.2",
+    "eslint": "^10.8.0",
     "prettier": "^3.9.6",
     "typescript-eslint": "^8.65.0"
   },
