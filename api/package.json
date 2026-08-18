@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "devDependencies": {
-    "@tsconfig/node18": "^18.2.6",
+    "@tsconfig/node18": "^18.2.7",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsdom": "^30.0.0",
