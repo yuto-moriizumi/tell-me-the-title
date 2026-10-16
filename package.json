@@ -11,7 +11,7 @@
   },
   "devDependencies": {
     "eslint": "^9.39.2",
-    "prettier": "^3.9.9",
+    "prettier": "^3.9.10",
     "typescript-eslint": "^8.71.2"
   },
   "workspaces": [
