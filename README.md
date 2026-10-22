@@ -1,4 +1,4 @@
-# Tell me the title
+# Deleted Video Title Finder for YouTube™
 
 Know the YouTube deleted video title!
 This browser extension adds a button to each deleted YouTube video, allowing users to retrieve the title of the video.
