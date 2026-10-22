@@ -1,0 +1,47 @@
+# Deploy the API (AWS Lambda + API Gateway) with the Serverless Framework.
+#
+# Required repository secrets:
+#   AWS_ACCESS_KEY_ID
+#   AWS_SECRET_ACCESS_KEY
+#
+# The service uses `frameworkVersion: "3"`, so the Serverless Framework v3 CLI is
+# pinned below. Serverless Framework v4 refuses unattended runs without a license
+# key, which is why v3 is used instead.
+name: Deploy API
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# CloudFormation cannot run two stack updates at the same time, so never cancel
+# (or run in parallel with) an in-progress deployment.
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck --workspace api
+      - name: Deploy
+        working-directory: api
+        run: npx --yes serverless@3.40.0 deploy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SLS_TELEMETRY_DISABLED: "1"

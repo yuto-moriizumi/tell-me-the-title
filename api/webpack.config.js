@@ -1,11 +1,11 @@
-import path from "path";
-import TerserPlugin from "terser-webpack-plugin";
-import type { Configuration } from "webpack";
-import { lib } from "serverless-webpack";
+/* eslint-disable @typescript-eslint/no-require-imports */
+const path = require("path");
+const TerserPlugin = require("terser-webpack-plugin");
+const { lib } = require("serverless-webpack");
 
 const isDev = lib.webpack.isLocal;
 
-const config: Configuration = {
+module.exports = {
   mode: isDev ? "development" : "production",
   target: "node",
   entry: "./main.ts",
@@ -32,5 +32,3 @@ const config: Configuration = {
     sourceMapFilename: "[file].map",
   },
 };
-
-export default config;

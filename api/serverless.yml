@@ -20,4 +20,4 @@ plugins:
 
 custom:
   webpack:
-    webpackConfig: webpack.config.ts
+    webpackConfig: webpack.config.js
