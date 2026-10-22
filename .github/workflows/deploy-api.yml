@@ -1,8 +1,8 @@
 # Deploy the API (AWS Lambda + API Gateway) with the Serverless Framework.
 #
-# Required repository secrets:
-#   AWS_ACCESS_KEY_ID
-#   AWS_SECRET_ACCESS_KEY
+# Authentication uses GitHub's OIDC provider, so no long-lived AWS access keys
+# are stored in the repository. Set the `AWS_ROLE_ARN` repository variable to
+# the ARN of the IAM role that GitHub Actions assumes (see README).
 #
 # The service uses `frameworkVersion: "3"`, so the Serverless Framework v3 CLI is
 # pinned below. Serverless Framework v4 refuses unattended runs without a license
@@ -17,6 +17,9 @@ on:
 
 permissions:
   contents: read
+  # Required to request the OIDC token that is exchanged for temporary AWS
+  # credentials.
+  id-token: write
 
 # CloudFormation cannot run two stack updates at the same time, so never cancel
 # (or run in parallel with) an in-progress deployment.
@@ -38,6 +41,12 @@ jobs:
         run: npm ci
       - name: Typecheck
         run: npm run typecheck --workspace api
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ap-northeast-1
+          role-session-name: deploy-api-${{ github.run_id }}
       # `--force` deploys on every push. Without it Serverless skips the
       # deployment when it thinks nothing changed, which can happen after a
       # CloudFormation rollback and leave the stack out of date.
@@ -45,6 +54,4 @@ jobs:
         working-directory: api
         run: npx --yes serverless@3.40.0 deploy --force
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           SLS_TELEMETRY_DISABLED: "1"

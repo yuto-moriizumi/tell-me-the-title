@@ -16,14 +16,42 @@ The API is deployed to AWS Lambda (ap-northeast-1) with the [Serverless Framewor
 
 Every push to `main` triggers the [`Deploy API`](.github/workflows/deploy-api.yml) workflow, which installs dependencies, typechecks the `api` workspace and runs `serverless deploy`. You can also start it manually from the Actions tab (`workflow_dispatch`).
 
-Set these repository secrets before the first run:
+The workflow authenticates with GitHub's OIDC provider and assumes an IAM role, so no long-lived AWS access keys are stored in the repository.
 
-| Secret                  | Description                                  |
-| ----------------------- | -------------------------------------------- |
-| `AWS_ACCESS_KEY_ID`     | Access key ID of the deployment IAM user     |
-| `AWS_SECRET_ACCESS_KEY` | Secret access key of the deployment IAM user |
+#### One-time AWS setup
 
-The IAM user needs permissions for CloudFormation, S3, Lambda, API Gateway, IAM (to manage the function's execution role), CloudWatch Logs, CloudWatch (alarms) and SNS.
+1. In IAM, create an OpenID Connect identity provider for `https://token.actions.githubusercontent.com` with the audience `sts.amazonaws.com`. Skip this step if the account already has GitHub's provider.
+1. Create an IAM role that the workflow assumes. Restrict its trust policy to the `main` branch of this repository and replace `<ACCOUNT_ID>`:
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Principal": {
+           "Federated": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com"
+         },
+         "Action": "sts:AssumeRoleWithWebIdentity",
+         "Condition": {
+           "StringEquals": {
+             "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+             "token.actions.githubusercontent.com:sub": "repo:yuto-moriizumi/tell-me-the-title:ref:refs/heads/main"
+           }
+         }
+       }
+     ]
+   }
+   ```
+
+1. Attach a policy that allows CloudFormation, S3, Lambda, API Gateway, IAM (to manage the function's execution role), CloudWatch Logs, CloudWatch (alarms) and SNS.
+1. In the repository, add an Actions variable named `AWS_ROLE_ARN` (Settings → Secrets and variables → Actions → Variables) with the ARN of the role.
+
+| Variable       | Description                                          |
+| -------------- | ---------------------------------------------------- |
+| `AWS_ROLE_ARN` | ARN of the IAM role that the deploy workflow assumes |
+
+The `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` repository secrets are no longer used and can be deleted.
 
 ### 5xx error notifications
 
