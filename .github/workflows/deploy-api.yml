@@ -38,9 +38,12 @@ jobs:
         run: npm ci
       - name: Typecheck
         run: npm run typecheck --workspace api
+      # `--force` deploys on every push. Without it Serverless skips the
+      # deployment when it thinks nothing changed, which can happen after a
+      # CloudFormation rollback and leave the stack out of date.
       - name: Deploy
         working-directory: api
-        run: npx --yes serverless@3.40.0 deploy
+        run: npx --yes serverless@3.40.0 deploy --force
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

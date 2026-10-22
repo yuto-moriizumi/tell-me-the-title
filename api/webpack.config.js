@@ -16,6 +16,11 @@ module.exports = {
         test: /\.ts$/,
         use: "ts-loader",
       },
+      {
+        // Inline jsdom's runtime stylesheet; see jsdom-stylesheet-loader.js.
+        test: /jsdom[\\/]lib[\\/]jsdom[\\/]living[\\/]css[\\/]helpers[\\/]computed-style\.js$/,
+        use: path.join(__dirname, "jsdom-stylesheet-loader.js"),
+      },
     ],
   },
   optimization: {
