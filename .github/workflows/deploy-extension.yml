@@ -1,0 +1,158 @@
+# Publish the browser extension to the Chrome Web Store.
+#
+# The store only accepts a version higher than the published one, so the
+# workflow publishes only when the version in front/src/manifest.json changes.
+# Authentication uses a Google Cloud service account linked to the publisher in
+# the Chrome Web Store Developer Dashboard (see the README).
+name: Deploy Extension
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - front/**
+      - .github/workflows/deploy-extension.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# The store API submits whichever package was uploaded last, so two runs must
+# never overlap. Do not cancel an in-progress run halfway through.
+concurrency:
+  group: deploy-extension
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Only the main branch may publish. This also keeps a manual run from a
+    # feature branch from submitting an unreleased build to the store.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Needed to read the manifest version from the commit before the push.
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Check extension version
+        id: version
+        run: |
+          current=$(node -p "require('./front/src/manifest.json').version")
+          echo "version=$current" >> "$GITHUB_OUTPUT"
+
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Manual run: publishing version $current."
+            exit 0
+          fi
+
+          before="${{ github.event.before }}"
+          if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+            previous=""
+          else
+            previous=$(git show "$before:front/src/manifest.json" 2>/dev/null \
+              | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version" \
+              2>/dev/null || true)
+          fi
+
+          if [ "$current" = "$previous" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Manifest version is still $current; skipping Chrome Web Store publication."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Publishing ${previous:-<new extension>} -> $current."
+          fi
+      - name: Install dependencies
+        if: steps.version.outputs.changed == 'true'
+        run: npm ci
+      - name: Typecheck
+        if: steps.version.outputs.changed == 'true'
+        run: npm run typecheck -w front
+      - name: Build
+        if: steps.version.outputs.changed == 'true'
+        run: npm run build -w front
+      - name: Authenticate to Google Cloud
+        id: auth
+        if: steps.version.outputs.changed == 'true'
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.CHROME_SERVICE_ACCOUNT_JSON }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/chromewebstore
+          create_credentials_file: false
+          export_environment_variables: false
+      # The API has no "submit this package" call: it publishes whichever
+      # package was uploaded last, so upload and publish stay in one step.
+      - name: Upload and publish
+        if: steps.version.outputs.changed == 'true'
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          PUBLISHER_ID: ${{ vars.CHROME_PUBLISHER_ID }}
+          EXTENSION_ID: ${{ vars.CHROME_EXTENSION_ID }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          base="https://chromewebstore.googleapis.com"
+          item="publishers/${PUBLISHER_ID}/items/${EXTENSION_ID}"
+          zip="front/build/tell-me-the-title.zip"
+          json() { node -p "JSON.parse(require('fs').readFileSync('$1', 'utf8')).$2 ?? ''"; }
+          echo "::add-mask::${ACCESS_TOKEN}"
+
+          echo "Store status before upload:"
+          curl -sS --fail-with-body \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            "${base}/v2/${item}:fetchStatus" | tee status.json
+          echo
+
+          # Safe to re-run: the store rejects a version that is already
+          # published or waiting for review.
+          published=$(json status.json "publishedItemRevisionStatus?.distributionChannels?.[0]?.crxVersion")
+          submitted=$(json status.json "submittedItemRevisionStatus?.distributionChannels?.[0]?.crxVersion")
+          if [ "${published}" = "${VERSION}" ] || [ "${submitted}" = "${VERSION}" ]; then
+            echo "::notice::Version ${VERSION} is already published or in review; nothing to do."
+            exit 0
+          fi
+
+          echo "Uploading $(basename "${zip}")..."
+          curl -sS --fail-with-body -X POST \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "X-Goog-Upload-Protocol: raw" \
+            -H "X-Goog-Upload-File-Name: $(basename "${zip}")" \
+            --data-binary @"${zip}" \
+            "${base}/upload/v2/${item}:upload" | tee upload.json
+          echo
+
+          state=$(json upload.json uploadState)
+          for _ in $(seq 1 30); do
+            if [ "${state}" != "IN_PROGRESS" ]; then
+              break
+            fi
+            sleep 10
+            curl -sS --fail-with-body \
+              -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+              "${base}/v2/${item}:fetchStatus" > status.json
+            state=$(json status.json lastAsyncUploadState)
+          done
+
+          if [ "${state}" = "IN_PROGRESS" ]; then
+            echo "::error::The store is still processing the upload after 5 minutes."
+            exit 1
+          fi
+          if [ "${state}" != "SUCCEEDED" ]; then
+            echo "::error::Upload failed with state '${state}'."
+            exit 1
+          fi
+
+          echo "Submitting for review..."
+          curl -sS --fail-with-body -X POST \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"publishType":"DEFAULT_PUBLISH"}' \
+            "${base}/v2/${item}:publish" | tee publish.json
+          echo

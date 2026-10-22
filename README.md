@@ -66,6 +66,45 @@ cd api
 npx --yes serverless@3.40.0 deploy
 ```
 
+## Deployment (extension)
+
+The extension is published to the Chrome Web Store by the [`Deploy Extension`](.github/workflows/deploy-extension.yml) workflow.
+
+Every push to `main` that changes the `version` in [`front/src/manifest.json`](front/src/manifest.json) builds `front/build/tell-me-the-title.zip`, uploads it with the Chrome Web Store API v2 and submits the new version for review. Pushes that leave the version unchanged skip publication, because the store rejects versions that are equal to or lower than the published one. The workflow can also be started manually from the Actions tab (`workflow_dispatch`) to retry a failed publication; bump the version first if the current one was already published.
+
+Authentication uses a Google Cloud service account linked to the Chrome Web Store publisher, so no long-lived OAuth refresh token is stored. The workflow exchanges the service account key for a short-lived `chromewebstore` access token with [`google-github-actions/auth`](https://github.com/google-github-actions/auth).
+
+### One-time setup
+
+1. The extension must already exist in the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole). The API cannot create a new item. Complete the Store listing and Privacy tabs before the first automated upload.
+1. Create a Google Cloud project (or reuse an existing one; no billing account is required) and enable the [Chrome Web Store API](https://console.cloud.google.com/apis/library/chromewebstore.googleapis.com). This repository uses the `tell-me-the-title-cws` project.
+1. Create a service account in that project (no IAM roles are needed):
+
+   ```sh
+   gcloud iam service-accounts create cws-publisher \
+     --display-name="Chrome Web Store publisher" \
+     --project=tell-me-the-title-cws
+   ```
+
+1. Create a JSON key for it and store the file contents as the `CHROME_SERVICE_ACCOUNT_JSON` repository secret (Settings → Secrets and variables → Actions). Never commit the key.
+
+   ```sh
+   gcloud iam service-accounts keys create cws-key.json \
+     --iam-account=cws-publisher@tell-me-the-title-cws.iam.gserviceaccount.com
+   gh secret set CHROME_SERVICE_ACCOUNT_JSON --repo OWNER/REPO < cws-key.json
+   rm cws-key.json
+   ```
+
+1. Link the service account to the publisher. In the Developer Dashboard, open **Account** and add `cws-publisher@tell-me-the-title-cws.iam.gserviceaccount.com` in the service account section. A publisher can link one service account.
+1. Find the extension ID (the 32-character ID in the item's dashboard URL) and the publisher ID (**Publisher** → **Settings**) and add them as repository variables:
+
+| Name                  | Kind     | Description                               |
+| --------------------- | -------- | ----------------------------------------- |
+| `CHROME_EXTENSION_ID` | Variable | 32-character Chrome Web Store item ID     |
+| `CHROME_PUBLISHER_ID` | Variable | Publisher ID from the Developer Dashboard |
+
+Publication is not immediate: the submitted version stays in review until Google approves it.
+
 ## Usage
 
 1. Navigate to any YouTube playlist page.
