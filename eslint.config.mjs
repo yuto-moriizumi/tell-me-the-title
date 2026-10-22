@@ -7,7 +7,7 @@ export default tseslint.config(
     ignores: ["front/build", ".prettierrc.js"],
   },
   {
-    files: ["**/webpack.config.js"],
+    files: ["**/webpack.config.js", "**/jsdom-stylesheet-loader.js"],
     languageOptions: { globals: globals.node },
   },
   pluginJs.configs.recommended,
