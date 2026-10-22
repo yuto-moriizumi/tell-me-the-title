@@ -22,24 +22,28 @@ function main() {
         idMatch[1]
       }&timestamp=${dayjs().add(-1, "year").format("YYYYMMDD")}`;
       button.textContent = "...";
-      const res = await fetch(url, { mode: "cors" });
-      const data: Response = await res.json();
-      const snapshots = data.archived_snapshots;
-      if (!("closest" in snapshots)) {
-        showResult("Archive unavailable");
+      try {
+        const res = await fetch(url, { mode: "cors" });
+        const data: Response = await res.json();
+        const snapshots = data.archived_snapshots;
+        if (!("closest" in snapshots)) {
+          showResult("Archive unavailable");
+          return;
+        }
+        const snapshotUrl = new URL(snapshots.closest.url);
+        snapshotUrl.protocol = "https";
+        const { title, message } = await (
+          await fetch(
+            `https://ior285nerb.execute-api.ap-northeast-1.amazonaws.com/snapshot?url=${encodeURIComponent(snapshotUrl.toString())}`,
+            { mode: "cors" },
+          )
+        ).json();
+        showResult(title ?? message);
+      } catch {
+        showResult("Failed to get title");
+      } finally {
         button.textContent = "Get title";
-        return;
       }
-      const snapshotUrl = new URL(snapshots.closest.url);
-      snapshotUrl.protocol = "https";
-      const { title, message } = await (
-        await fetch(
-          `https://ior285nerb.execute-api.ap-northeast-1.amazonaws.com/snapshot?url=${snapshotUrl.toString()}`,
-          { mode: "cors" },
-        )
-      ).json();
-      showResult(title ?? message);
-      button.textContent = "Get title";
     };
     video.insertBefore(button, video.lastChild);
   }
