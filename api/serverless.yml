@@ -21,3 +21,42 @@ plugins:
 custom:
   webpack:
     webpackConfig: webpack.config.js
+
+resources:
+  Resources:
+    # 5xx の通知先。メール購読は AWS から届く確認リンクを一度クリックするまで有効にならない。
+    AlertTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${self:service}-${sls:stage}-alerts
+        Subscription:
+          - Protocol: email
+            Endpoint: Ysiki.Shokurin@gmail.com
+
+    # アプリ内で catch して 500/502 を返すケースは Lambda の Errors メトリクスに
+    # 現れないため、API Gateway(httpApi の $default ステージ)の 5XXError を監視する。
+    # Lambda の異常終了(タイムアウト等)も統合エラーとしてここに計上される。
+    Api5xxAlarm:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: ${self:service}-${sls:stage}-api-5xx
+        AlarmDescription: API returned 5xx responses
+        Namespace: AWS/ApiGateway
+        MetricName: 5XXError
+        Dimensions:
+          - Name: ApiId
+            Value: !Ref HttpApi
+          - Name: Stage
+            Value: $default
+        Statistic: Sum
+        Period: 300
+        EvaluationPeriods: 1
+        # 外部要因(YouTube 側の 403/429 など)による単発の 502 では鳴らさない
+        Threshold: 3
+        ComparisonOperator: GreaterThanOrEqualToThreshold
+        TreatMissingData: notBreaching
+        AlarmActions:
+          - !Ref AlertTopic
+        # 復旧時も通知する
+        OKActions:
+          - !Ref AlertTopic
