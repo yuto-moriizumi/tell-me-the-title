@@ -86,6 +86,19 @@ Authentication uses a Google Cloud service account linked to the Chrome Web Stor
      --project=tell-me-the-title-cws
    ```
 
+1. Grant the service account the `Service Account Token Creator` role on
+   itself. The workflow requests an access token through the IAM Credentials
+   API, which requires this self-binding even though the account needs no
+   other roles:
+
+   ```sh
+   gcloud iam service-accounts add-iam-policy-binding \
+     cws-publisher@tell-me-the-title-cws.iam.gserviceaccount.com \
+     --member="serviceAccount:cws-publisher@tell-me-the-title-cws.iam.gserviceaccount.com" \
+     --role="roles/iam.serviceAccountTokenCreator" \
+     --project=tell-me-the-title-cws
+   ```
+
 1. Create a JSON key for it and store the file contents as the `CHROME_SERVICE_ACCOUNT_JSON` repository secret (Settings → Secrets and variables → Actions). Never commit the key.
 
    ```sh
