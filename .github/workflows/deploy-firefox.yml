@@ -1,0 +1,176 @@
+# Publish the browser extension to addons.mozilla.org (AMO, Firefox).
+#
+# Like the Chrome Web Store, AMO refuses a version number that was already
+# submitted, so the workflow publishes only when the version in
+# front/src/manifest.json changes. Authentication uses AMO API credentials
+# (a JWT issuer/secret pair, see the README).
+#
+# Submission itself is handled by "web-ext sign", Mozilla's official CLI: it
+# uploads the build, waits for the automated review approval and downloads the
+# signed XPI. The manifest's browser_specific_settings.gecko.id identifies the
+# add-on, so the workflow needs no extra variables.
+#
+# AMO only takes a listing's name and summary from the manifest when the
+# listing is first created, so the workflow also PATCHes them explicitly on
+# every publication.
+name: Deploy Firefox Add-on
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - front/**
+      - .github/scripts/**
+      - .github/workflows/deploy-firefox.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Two overlapping runs could submit different builds for the same version, so
+# they must never overlap. Do not cancel an in-progress run halfway through.
+concurrency:
+  group: deploy-firefox
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Only the main branch may publish. This also keeps a manual run from a
+    # feature branch from submitting an unreleased build to the store.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # web-ext sign waits up to 15 minutes for the automated review approval.
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Needed to read the manifest version from the commit before the push.
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Check extension version
+        id: version
+        run: |
+          current=$(node -p "require('./front/src/manifest.json').version")
+          echo "version=$current" >> "$GITHUB_OUTPUT"
+
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Manual run: publishing version $current."
+            exit 0
+          fi
+
+          before="${{ github.event.before }}"
+          if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+            previous=""
+          else
+            previous=$(git show "$before:front/src/manifest.json" 2>/dev/null \
+              | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version" \
+              2>/dev/null || true)
+          fi
+
+          if [ "$current" = "$previous" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Manifest version is still $current; skipping AMO publication."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Publishing ${previous:-<new extension>} -> $current."
+          fi
+      - name: Install dependencies
+        if: steps.version.outputs.changed == 'true'
+        run: npm ci
+      - name: Typecheck
+        if: steps.version.outputs.changed == 'true'
+        run: npm run typecheck -w front
+      - name: Build
+        if: steps.version.outputs.changed == 'true'
+        run: npm run build -w front
+      # Same linter that Mozilla runs on submission; catching errors here saves
+      # a failed upload round-trip.
+      - name: Lint for AMO
+        if: steps.version.outputs.changed == 'true'
+        run: npx --yes web-ext@10 lint --source-dir front/build
+      - name: Check whether the version was already submitted
+        id: submitted
+        if: steps.version.outputs.changed == 'true'
+        env:
+          AMO_API_KEY: ${{ secrets.AMO_JWT_KEY }}
+          AMO_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          echo "::add-mask::${AMO_API_KEY}"
+          echo "::add-mask::${AMO_API_SECRET}"
+
+          guid=$(node -p "encodeURIComponent(require('./front/src/manifest.json').browser_specific_settings.gecko.id)")
+          url="https://addons.mozilla.org/api/v5/addons/addon/${guid}/versions/${VERSION}/"
+
+          # AMO's API v5 authenticates with a short-lived JSON Web Token signed
+          # with the API key/secret pair; see .github/scripts/amo-jwt.mjs.
+          jwt=$(node .github/scripts/amo-jwt.mjs)
+
+          # Safe to re-run: any already submitted version (published, waiting
+          # for review, or left over from a timed-out run) makes AMO reject the
+          # upload, so skip whenever the endpoint knows this version.
+          code=$(curl -sS -o version.json -w '%{http_code}' \
+            -H "Authorization: JWT ${jwt}" \
+            "${url}") || code=0
+          if [ "$code" = "200" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Version ${VERSION} was already submitted to AMO; skipping."
+          elif [ "$code" = "404" ]; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Version ${VERSION} is not on AMO yet."
+          else
+            echo "::error::Unexpected AMO API response (HTTP ${code}):"
+            cat version.json
+            exit 1
+          fi
+      # The submission waits for AMO's automated review approval. When it takes
+      # longer than 15 minutes web-ext fails, but the version stays submitted;
+      # the check above skips it on the next run.
+      - name: Sign and publish
+        if: steps.version.outputs.changed == 'true' && steps.submitted.outputs.exists != 'true'
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_KEY }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          WEB_EXT_CHANNEL: listed
+        run: |
+          npx --yes web-ext@10 sign \
+            --source-dir front/build \
+            --artifacts-dir front/build/artifacts
+      # A version submission never updates an existing listing's name or
+      # summary, so PATCH them with the manifest values after publishing. Runs
+      # after "Sign and publish" so a listing rejection cannot prevent the
+      # publication itself. Safe to run on already submitted versions.
+      - name: Sync AMO listing metadata
+        if: steps.version.outputs.changed == 'true'
+        env:
+          AMO_API_KEY: ${{ secrets.AMO_JWT_KEY }}
+          AMO_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          set -euo pipefail
+          echo "::add-mask::${AMO_API_KEY}"
+          echo "::add-mask::${AMO_API_SECRET}"
+
+          jwt=$(node .github/scripts/amo-jwt.mjs)
+          guid=$(node -p "encodeURIComponent(require('./front/src/manifest.json').browser_specific_settings.gecko.id)")
+          node -e '
+            const manifest = require("./front/src/manifest.json");
+            // Translated fields need at least one locale; the manifest is
+            // written in English.
+            process.stdout.write(JSON.stringify({
+              name: { "en-US": manifest.name },
+              summary: { "en-US": manifest.description },
+            }));
+          ' > metadata.json
+
+          echo "Updating the listing name and summary..."
+          curl -sS --fail-with-body -X PATCH \
+            -H "Authorization: JWT ${jwt}" \
+            -H "Content-Type: application/json" \
+            --data-binary @metadata.json \
+            "https://addons.mozilla.org/api/v5/addons/addon/${guid}/"

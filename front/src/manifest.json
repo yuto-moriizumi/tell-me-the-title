@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Deleted Video Title Finder for YouTube™",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Find deleted or unavailable YouTube™ video titles in playlists via the Wayback Machine. YouTube is a trademark of Google LLC.",
   "author": "VolgaKurvar",
   "content_scripts": [
