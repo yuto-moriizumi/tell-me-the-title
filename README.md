@@ -105,6 +105,32 @@ Authentication uses a Google Cloud service account linked to the Chrome Web Stor
 
 Publication is not immediate: the submitted version stays in review until Google approves it.
 
+### Firefox (addons.mozilla.org)
+
+The extension is also submitted to [addons.mozilla.org](https://addons.mozilla.org) (AMO) by the [`Deploy Firefox Add-on`](.github/workflows/deploy-firefox.yml) workflow, which runs in addition to the Chrome one.
+
+It shares the Chrome workflow's trigger and version gate: every push to `main` that changes the `version` in the manifest lints `front/build` with `web-ext lint` and submits it with `web-ext sign --channel listed` ([web-ext](https://github.com/mozilla/web-ext), Mozilla's official CLI), which waits for AMO's automated review approval and downloads the signed XPI. A version that was already submitted - published, waiting for review, or left behind by a run that hit the 15-minute approval timeout - is skipped, because AMO rejects duplicate version numbers. The workflow can also be started manually from the Actions tab (`workflow_dispatch`).
+
+The manifest's [`browser_specific_settings.gecko.id`](front/src/manifest.json) identifies the add-on on AMO, so the workflow needs no variables.
+
+### One-time setup (Firefox)
+
+1. The manifest already contains `browser_specific_settings.gecko.id`. Never change it: AMO treats the same version re-uploaded under a different ID as a different add-on.
+1. The workflow can only add versions to an add-on that already exists on AMO with complete listing metadata (license, categories, screenshots). Create the listing once by building the zip locally and uploading it through the [Developer Hub](https://addons.mozilla.org/developers/addons/submit/):
+
+   ```sh
+   npm run build -w front
+   ```
+
+1. Generate API credentials (JWT issuer/secret pair) at [addons.mozilla.org/developers/addon/api/key/](https://addons.mozilla.org/developers/addon/api/key/) and store them as repository secrets (Settings → Secrets and variables → Actions). Never commit them.
+
+| Name             | Kind   | Description                              |
+| ---------------- | ------ | ---------------------------------------- |
+| `AMO_JWT_KEY`    | Secret | JWT issuer from the AMO API keys page    |
+| `AMO_JWT_SECRET` | Secret | JWT secret from the AMO API keys page    |
+
+Submissions are not immediate either: Mozilla's automated review usually approves the version within minutes, but manual review can take longer. A run that fails on the approval timeout still leaves the version submitted; re-running the workflow afterwards skips it.
+
 ## Usage
 
 1. Navigate to any YouTube playlist page.
