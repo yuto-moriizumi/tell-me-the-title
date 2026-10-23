@@ -111,6 +111,8 @@ The extension is also submitted to [addons.mozilla.org](https://addons.mozilla.o
 
 It shares the Chrome workflow's trigger and version gate: every push to `main` that changes the `version` in the manifest lints `front/build` with `web-ext lint` and submits it with `web-ext sign --channel listed` ([web-ext](https://github.com/mozilla/web-ext), Mozilla's official CLI), which waits for AMO's automated review approval and downloads the signed XPI. A version that was already submitted - published, waiting for review, or left behind by a run that hit the 15-minute approval timeout - is skipped, because AMO rejects duplicate version numbers. The workflow can also be started manually from the Actions tab (`workflow_dispatch`).
 
+AMO only takes a listing's name and summary from the manifest when the listing is first created, so the workflow also PATCHes the listing with the manifest values on every publication ([`.github/scripts/amo-jwt.mjs`](.github/scripts/amo-jwt.mjs) generates the required short-lived JWT). Renaming the extension in the manifest therefore updates the AMO listing on the next publication.
+
 The manifest's [`browser_specific_settings.gecko.id`](front/src/manifest.json) identifies the add-on on AMO, so the workflow needs no variables.
 
 ### One-time setup (Firefox)

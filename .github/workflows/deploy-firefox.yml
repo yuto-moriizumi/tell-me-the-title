@@ -9,6 +9,10 @@
 # uploads the build, waits for the automated review approval and downloads the
 # signed XPI. The manifest's browser_specific_settings.gecko.id identifies the
 # add-on, so the workflow needs no extra variables.
+#
+# AMO only takes a listing's name and summary from the manifest when the
+# listing is first created, so the workflow also PATCHes them explicitly on
+# every publication.
 name: Deploy Firefox Add-on
 
 on:
@@ -17,6 +21,7 @@ on:
       - main
     paths:
       - front/**
+      - .github/scripts/**
       - .github/workflows/deploy-firefox.yml
   workflow_dispatch:
 
@@ -104,24 +109,8 @@ jobs:
           url="https://addons.mozilla.org/api/v5/addons/addon/${guid}/versions/${VERSION}/"
 
           # AMO's API v5 authenticates with a short-lived JSON Web Token signed
-          # with the API key/secret pair; 60 seconds of validity is plenty.
-          jwt=$(node -e '
-            const crypto = require("crypto");
-            const b64u = (obj) => Buffer.from(JSON.stringify(obj)).toString("base64url");
-            const iat = Math.floor(Date.now() / 1000);
-            const head = b64u({ alg: "HS256", typ: "JWT" });
-            const body = b64u({
-              iss: process.env.AMO_API_KEY,
-              iat,
-              exp: iat + 60,
-              jti: crypto.randomBytes(16).toString("hex"),
-            });
-            const input = head + "." + body;
-            const signature = crypto.createHmac("sha256", process.env.AMO_API_SECRET)
-              .update(input)
-              .digest("base64url");
-            process.stdout.write(input + "." + signature);
-          ')
+          # with the API key/secret pair; see .github/scripts/amo-jwt.mjs.
+          jwt=$(node .github/scripts/amo-jwt.mjs)
 
           # Safe to re-run: any already submitted version (published, waiting
           # for review, or left over from a timed-out run) makes AMO reject the
@@ -153,3 +142,35 @@ jobs:
           npx --yes web-ext@10 sign \
             --source-dir front/build \
             --artifacts-dir front/build/artifacts
+      # A version submission never updates an existing listing's name or
+      # summary, so PATCH them with the manifest values after publishing. Runs
+      # after "Sign and publish" so a listing rejection cannot prevent the
+      # publication itself. Safe to run on already submitted versions.
+      - name: Sync AMO listing metadata
+        if: steps.version.outputs.changed == 'true'
+        env:
+          AMO_API_KEY: ${{ secrets.AMO_JWT_KEY }}
+          AMO_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          set -euo pipefail
+          echo "::add-mask::${AMO_API_KEY}"
+          echo "::add-mask::${AMO_API_SECRET}"
+
+          jwt=$(node .github/scripts/amo-jwt.mjs)
+          guid=$(node -p "encodeURIComponent(require('./front/src/manifest.json').browser_specific_settings.gecko.id)")
+          node -e '
+            const manifest = require("./front/src/manifest.json");
+            // Translated fields need at least one locale; the manifest is
+            // written in English.
+            process.stdout.write(JSON.stringify({
+              name: { "en-US": manifest.name },
+              summary: { "en-US": manifest.description },
+            }));
+          ' > metadata.json
+
+          echo "Updating the listing name and summary..."
+          curl -sS --fail-with-body -X PATCH \
+            -H "Authorization: JWT ${jwt}" \
+            -H "Content-Type: application/json" \
+            --data-binary @metadata.json \
+            "https://addons.mozilla.org/api/v5/addons/addon/${guid}/"
